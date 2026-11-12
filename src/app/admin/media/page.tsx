@@ -1,0 +1,8 @@
+import { prisma } from "@/lib/prisma";
+import { MediaUploader } from "./uploader";
+
+export const dynamic = "force-dynamic";
+export default async function MediaPage() {
+  const items = await prisma.galleryItem.findMany({ orderBy: { createdAt: "desc" }, take: 100 });
+  return <main className="media-admin"><a href="/admin">Back to admin</a><p className="eyebrow">CONTENT DESK / MEDIA LIBRARY</p><h1>Images &amp; film.</h1><p>Upload visual assets for the Zen Steps site. Images and video are available to use in site sections.</p><MediaUploader/><div className="media-list">{items.map(item => <article key={item.id}>{item.mediaType === "video" ? <video src={item.mediaUrl} controls/> : <img src={item.mediaUrl} alt={item.title || "Zen Steps media"}/>}<div><b>{item.title || "Untitled media"}</b><span> / </span><code>{item.mediaUrl}</code></div></article>)}</div><style>{`.media-admin{padding:48px 9vw}.media-admin>a:first-child{font-size:11px}.media-admin .eyebrow{margin-top:42px;color:var(--accent)}.media-admin h1{font:64px var(--display);font-weight:400;margin:0}.media-admin>p:not(.eyebrow){font-size:13px;line-height:1.8;color:var(--muted);max-width:490px}.media-list{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:45px}.media-list article{border-top:1px solid var(--line);padding-top:12px}.media-list img,.media-list video{width:100%;height:170px;object-fit:cover;background:#e4e0d6}.media-list article div{display:flex;flex-direction:column;gap:7px;padding-top:8px}.media-list b{font-size:12px;font-weight:400}.media-list span,.media-list code{font-size:9px;color:var(--muted)}@media(max-width:700px){.media-admin{padding:35px 7%}.media-list{grid-template-columns:1fr 1fr}}`}</style></main>;
+}

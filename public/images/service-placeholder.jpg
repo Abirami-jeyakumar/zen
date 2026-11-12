@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <rect width="800" height="600" fill="#E8E0D0"/>
+  <text x="400" y="290" text-anchor="middle" font-family="Georgia, serif" font-size="20" fill="#8B7355">Service Image</text>
+  <text x="400" y="320" text-anchor="middle" font-family="Helvetica, sans-serif" font-size="14" fill="#8B7355" opacity="0.6">Upload via Admin Panel</text>
+</svg>
+

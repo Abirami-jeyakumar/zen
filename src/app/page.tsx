@@ -1,69 +1,46 @@
-import Image from "next/image";
+import { unstable_cache } from "next/cache";
+import { prisma } from "@/lib/prisma";
 
-export default function Home() {
-  return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+export const revalidate = 3600;
+const readHomeContent = unstable_cache(async () => {
+  const [services, locations, posts, faqs, media] = await Promise.all([
+    prisma.service.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" }, take: 3 }),
+    prisma.location.findMany({ where: { isActive: true }, orderBy: { city: "asc" }, take: 8 }),
+    prisma.blogPost.findMany({ where: { isPublished: true }, orderBy: { publishedAt: "desc" }, take: 3 }),
+    prisma.fAQ.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" }, take: 6 }),
+    prisma.galleryItem.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" }, take: 4 }),
+  ]);
+  return { services, locations, posts, faqs, media };
+}, ["zen-steps-home-content"], { revalidate: 3600, tags: ["home"] });
+
+const defaultServices = [
+  { title: "Stone path", shortDesc: "A guided walk across thoughtfully arranged natural textures. Find a pace that feels right, one step at a time.", duration: "25 min · Guided", slug: "stone-path" },
+  { title: "Grounding hour", shortDesc: "A quiet, barefoot practice with breath and balance at its centre. A reset for busy minds and tired feet.", duration: "40 min · Slow", slug: "grounding-hour" },
+  { title: "Foot & stillness", shortDesc: "Warm water, unhurried care and a little space to notice what your body has been asking for.", duration: "30 min · Restore", slug: "foot-stillness" },
+];
+const defaultFaqs = [
+  { id: "first-visit", question: "What happens at a first visit?", answer: "A practitioner will explain the session, ask about your comfort and adapt the pace to you. You can pause or stop at any time." },
+  { id: "what-to-wear", question: "What should I wear?", answer: "Choose comfortable clothes. Sessions are generally done barefoot; your local centre can advise you about anything specific to your booking." },
+  { id: "medical-care", question: "Are sessions medical treatment?", answer: "No. Zen Steps sessions are for relaxation and everyday wellbeing and do not diagnose, treat or replace advice from a qualified health professional." },
+];
+export default async function Home() {
+  const content = await readHomeContent().catch(() => ({ services: [], locations: [], posts: [], faqs: [], media: [] }));
+  const services = content.services.length ? content.services : defaultServices; const posts = content.posts;
+  const faqs = content.faqs.length ? content.faqs : defaultFaqs;
+  return <main>
+    <header className="site-header"><a className="wordmark" href="#top">zen<span>steps</span><i>®</i></a><label className="menu-toggle" htmlFor="nav-toggle">Menu</label><input className="nav-check" id="nav-toggle" type="checkbox"/><nav><a href="#practice">The practice</a><a href="#centres">Find a centre</a><a href="#journal">Field notes</a><a className="nav-cta" href="#visit">Plan a visit <span>+</span></a></nav></header>
+    <section id="top" className="hero"><div className="hero-image" role="img" aria-label="A quiet stone path in a garden"/><div className="hero-copy"><p className="eyebrow">A slower kind of wellness - Across India</p><h1>Come back<br/>to your <em>feet.</em></h1><p className="hero-intro">A considered pause for the part of you that carries everything. Find your footing with guided stone-path sessions and grounding rituals.</p><a className="text-link" href="#practice">Discover the practice <span>+</span></a></div><div className="hero-caption">01 - 03 <span>THE BODY KNOWS THE WAY</span></div><div className="hero-stamp">EST.<br/>IN<br/>INDIA</div></section>
+    <section className="intro section-pad"><div className="section-index">01 / A small beginning</div><div className="intro-content"><p className="eyebrow">Wellness, without the noise</p><h2>Make room for<br/>a <em>different</em> rhythm.</h2><div className="intro-bottom"><p>Zen Steps brings together the simple intelligence of touch, texture and time. Each visit is guided by a trained practitioner, shaped around how you arrive, and held in a space made for doing less.</p><a className="text-link" href="#practice">How it works <span>+</span></a></div></div></section>
+    <section className="numbers"><div><b>01</b><span>Arrive as you are</span></div><div><b>20-45</b><span>Minutes, at your pace</span></div><div><b>All India</b><span>Find us where you are</span></div></section>
+    <section id="practice" className="practice section-pad"><div className="section-heading"><div><p className="eyebrow">02 / The practice</p><h2>Small rituals.<br/><em>Steadier days.</em></h2></div><p>There is no ideal way to begin. Choose a guided session, tell us what you need, and let the ground set the pace.</p></div><div className="practice-list">{services.map((service,index)=><article key={service.slug}><span className="practice-no">0{index+1}</span><div><h3>{service.title}</h3><p>{service.shortDesc}</p></div><span className="practice-meta">{service.duration || "GUIDED SESSION"}</span><a href="#visit" aria-label="Ask about this session">↗</a></article>)}</div><p className="small-note">Our sessions support relaxation and everyday wellbeing. They are not a substitute for medical care.</p></section>
+    <section className="statement"><div className="statement-image"/><div className="statement-copy"><p className="eyebrow">03 / A practice for everyone</p><h2>Care should<br/>meet you <em>where<br/>you are.</em></h2><p>Across our centres, practitioners make each session personal: checking in, adapting the pace, and helping you feel at ease from the first step.</p><a className="text-link" href="#centres">Meet your local team <span>+</span></a></div></section>
+    {content.media.length > 0 && <section className="media-wall section-pad"><p className="eyebrow">A look around our spaces</p><div className="media-wall-grid">{content.media.map(item=><figure key={item.id}>{item.mediaType === "video" ? <video src={item.mediaUrl} controls playsInline/> : <img src={item.mediaUrl} alt={item.title || "Zen Steps centre"}/>}<figcaption>{item.title}</figcaption></figure>)}</div></section>}
+    <section className="benefits section-pad"><p className="eyebrow">04 / What you might notice</p><div className="benefit-grid"><h2>Less rush.<br/>More <em>room.</em></h2><ul><li><span>01</span>A moment to slow down</li><li><span>02</span>Attention back in your body</li><li><span>03</span>A gentler end to a long day</li><li><span>04</span>Time set aside, just for you</li></ul></div></section>
+    <section id="visit" className="visit"><div className="visit-copy"><p className="eyebrow">05 / Make a little time</p><h2>Your first<br/>step is a <em>hello.</em></h2><p>Tell us where you are and what kind of pause you have in mind. A nearby centre will help you find a session that fits.</p><div className="visit-details"><span>01 - Share a few details</span><span>02 - We will call to find a time</span><span>03 - Come as you are</span></div></div><form className="enquiry-form" action="/api/inquiries" method="post"><label>Your name<input name="name" placeholder="How should we address you?" required/></label><label>Email<input name="email" type="email" placeholder="you@example.com" required/></label><label>Phone number<input name="phone" inputMode="tel" placeholder="+91" required/></label><label>City<input name="city" placeholder="Where are you based?" required/></label><label>What would you like to explore?<select name="interest"><option value="">Choose a starting point</option><option>Stone path</option><option>Grounding hour</option><option>Foot &amp; stillness</option><option>Franchise partnership</option></select></label><button className="submit-button" type="submit">Send an enquiry <span>+</span></button><small>By sending this, you agree to be contacted by Zen Steps about your enquiry.</small></form></section>
+    <section id="centres" className="centres section-pad"><div className="section-heading"><div><p className="eyebrow">06 / Find your way here</p><h2>A nearby place<br/>to <em>begin.</em></h2></div><a className="text-link" href="mailto:hello@zensteps.in">Ask us about your city <span>+</span></a></div><div className="centre-map"><div className="map-lines"/><span className="map-label">INDIA</span><i className="pin pin-one"/><i className="pin pin-two"/><i className="pin pin-three"/><i className="pin pin-four"/><div className="map-caption">Ask us about current centre availability in your city.</div></div><div className="centre-list">{content.locations.length ? content.locations.map(location=><article key={location.id}><b>{location.city}</b><span>+</span><a href={"tel:"+location.phone}>{location.phone}</a></article>) : <p className="centre-empty">Our centre list is being prepared. Ask us about your city and we will get back to you.</p>}</div></section>
+    <section id="journal" className="journal section-pad"><div className="section-heading"><div><p className="eyebrow">07 / Field notes</p><h2>Things we are<br/><em>thinking about.</em></h2></div><a className="text-link" href="/journal">All notes <span>+</span></a></div><div className="journal-grid">{posts.length ? posts.map((post,index)=><a key={post.id} href={"/journal/"+post.slug} className="journal-item"><div className={"journal-art art-"+["one","two","three"][index%3]}><span>{post.category}</span><b>↗</b></div><small>{post.author} · FIELD NOTE</small><h3>{post.title}</h3></a>) : <p className="journal-empty">New field notes are being prepared. Check back soon.</p>}</div></section>
+    <section className="faq-section section-pad"><p className="eyebrow">08 / A few questions</p><h2>Before you <em>arrive.</em></h2><div className="faq-list">{faqs.map(item=><details key={item.id}><summary>{item.question}</summary><p>{item.answer}</p></details>)}</div></section><section className="closing"><p className="eyebrow">A practice you can grow with</p><h2>Bring a little<br/>more <em>ground</em><br/>to your city.</h2><a className="text-link" href="/franchise">Explore a Zen Steps partnership <span>+</span></a></section>
+    <footer className="footer"><a className="wordmark" href="#top">zen<span>steps</span><i>®</i></a><p>Make room to feel well.<br/>Made with care in India.</p><div className="footer-links"><a href="#practice">The practice</a><a href="#centres">Find a centre</a><a href="/franchise">Partnerships</a><a href="/admin/login">Admin</a></div><div className="footer-bottom"><span>+</span><span>Wellness for the everyday.</span><a href="mailto:hello@zensteps.in">Get in touch ↗</a></div></footer>
+  </main>;
 }
+
